@@ -101,37 +101,47 @@ public class FSInfo {
   public long getCapacity(Session session) throws IOException {
     if(session.getFileSystem() instanceof LocalFileSystem) {
       File partition = new File("/");
-      return partition.getTotalSpace();
+      return returnPositive(partition.getTotalSpace());
     }
     if(useDFSClient) {
       DFSClient client = getDFSClient(session.getConfiguration());
       try {
-        return (Long)getObject(client, "totalRawCapacity");
+        return returnPositive((Long)getObject(client, "totalRawCapacity"));
       } finally {
         putDFSClient(session.getConfiguration(), client);
       }
     }
     FileSystem fs = session.getFileSystem();
-    return (Long)getObject(getObject(fs, "getStatus"), "getCapacity");
+    return returnPositive((Long)getObject(getObject(fs, "getStatus"), "getCapacity"));
   }
   public long getRemaining(Session session)  throws IOException{
-    return getCapacity(session) - getUsed(session);
+    return returnPositive(getCapacity(session) - getUsed(session));
   }
 
   public long getUsed(Session session)  throws IOException {
     if(session.getFileSystem() instanceof LocalFileSystem) {
       File partition = new File("/");
-      return partition.getTotalSpace() - partition.getFreeSpace();
+      return returnPositive(partition.getTotalSpace() - partition.getFreeSpace());
     }
     if(useDFSClient) {
       DFSClient client = getDFSClient(session.getConfiguration());
       try {
-        return (Long)getObject(client, "totalRawUsed");
+        return returnPositive((Long)getObject(client, "totalRawUsed"));
       } finally {
         putDFSClient(session.getConfiguration(), client);
       }
     }
     FileSystem fs = session.getFileSystem();
-    return (Long)getObject(getObject(fs, "getStatus"), "getUsed");
+    return returnPositive((Long)getObject(getObject(fs, "getStatus"), "getUsed"));
+  }
+  private long returnPositive(long value) {
+    if(value < 0) {
+      StringBuilder buffer = new StringBuilder();
+      buffer.append("Value ").append(value).append(" is less than zero. ");
+      buffer.append("Hex ").append(Long.toHexString(value)).append(" ");
+      buffer.append("Binary ").append(Long.toBinaryString(value));
+      throw new IllegalStateException(buffer.toString());
+    }
+    return value;
   }
 }
