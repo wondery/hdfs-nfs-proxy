@@ -1,3 +1,5 @@
 HDFS NFS Proxy is an NFS4 server for HDFS
 
-See https://github.com/cloudera/hdfs-nfs-proxy/wiki for more information.
+See https://github.com/cloudera/hdfs-nfs-proxy/wiki for more 
+information or https://github.com/cloudera/hdfs-nfs-proxy/wiki/Quick-Start
+for the Quick Start guide.
