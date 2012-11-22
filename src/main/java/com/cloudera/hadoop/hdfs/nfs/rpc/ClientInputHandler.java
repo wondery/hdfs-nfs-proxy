@@ -43,6 +43,7 @@ import com.cloudera.hadoop.hdfs.nfs.security.AuthenticatedCredentials;
 import com.cloudera.hadoop.hdfs.nfs.security.SecurityHandlerFactory;
 import com.cloudera.hadoop.hdfs.nfs.security.SessionSecurityHandler;
 import com.cloudera.hadoop.hdfs.nfs.security.Verifier;
+import com.cloudera.hadoop.hdfs.nfs.security.VerifierNone;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -182,6 +183,7 @@ class ClientInputHandler<REQUEST extends MessageBase, RESPONSE extends MessageBa
           RPCResponse response = new RPCResponse(request.getXid(), RPC_VERSION);
           response.setReplyState(RPC_REPLY_STATE_ACCEPT);
           response.setAcceptState(RPC_ACCEPT_SYSTEM_ERR);
+          response.setVerifier(new VerifierNone());
           writeRPCResponse(response);
         } catch (Exception x) {
           LOGGER.error(mSessionID + " Error writing failure packet", x);
@@ -236,6 +238,7 @@ class ClientInputHandler<REQUEST extends MessageBase, RESPONSE extends MessageBa
         RPCResponse response = new RPCResponse(request.getXid(), RPC_VERSION);
         response.setReplyState(e.getReplyState());
         response.setAcceptState(e.getAcceptState());
+        response.setVerifier(new VerifierNone());
         if(e instanceof RPCAuthException) {
           response.setAuthState(((RPCAuthException)e).getAuthState());
         }
