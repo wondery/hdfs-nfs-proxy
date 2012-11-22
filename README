@@ -1,1 +1,3 @@
-See src/main/resources/README.md (https://github.com/brockn/hdfs-nfs-proxy/tree/master/src/main/resources/README.md)
+HDFS NFS Proxy is an NFS4 server for HDFS
+
+See https://github.com/cloudera/hdfs-nfs-proxy/wiki for more information.
