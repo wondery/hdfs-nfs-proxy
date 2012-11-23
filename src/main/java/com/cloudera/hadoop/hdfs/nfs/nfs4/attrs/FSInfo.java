@@ -119,6 +119,18 @@ public class FSInfo {
   }
 
   public long getUsed(Session session)  throws IOException {
+    long result = getUsedInternal(session);
+    if(result < 0) {
+      /*
+       * HDFS will sometimes return a negative number for used. This
+       * only occurs when HDFS is nearly empty, a large amount of
+       * deletes occur and a race condition is hit. 
+       */
+      return 0;
+    }
+    return result;
+  }
+  private long getUsedInternal(Session session)  throws IOException {
     if(session.getFileSystem() instanceof LocalFileSystem) {
       File partition = new File("/");
       return returnPositive(partition.getTotalSpace() - partition.getFreeSpace());
@@ -126,13 +138,13 @@ public class FSInfo {
     if(useDFSClient) {
       DFSClient client = getDFSClient(session.getConfiguration());
       try {
-        return returnPositive((Long)getObject(client, "totalRawUsed"));
+        return (Long)getObject(client, "totalRawUsed");
       } finally {
         putDFSClient(session.getConfiguration(), client);
       }
     }
     FileSystem fs = session.getFileSystem();
-    return returnPositive((Long)getObject(getObject(fs, "getStatus"), "getUsed"));
+    return (Long)getObject(getObject(fs, "getStatus"), "getUsed");
   }
   private long returnPositive(long value) {
     if(value < 0) {
