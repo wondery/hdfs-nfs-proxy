@@ -254,8 +254,10 @@ class ClientInputHandler<REQUEST extends MessageBase, RESPONSE extends MessageBa
   private void writeApplicationResponse(SessionSecurityHandler<? extends Verifier> securityHandler,
       RPCRequest request, MessageBase applicationResponse) {
     mResponseCache.put(request.getXid(), applicationResponse);
-    LOGGER.info(mSessionID + " " + request.getXidAsHexString() + " Writing " +
+    if(LOGGER.isDebugEnabled()) {
+      LOGGER.debug(mSessionID + " " + request.getXidAsHexString() + " Writing " +
         applicationResponse.getClass().getSimpleName() + " to "  + mClientName);
+    }
     RPCBuffer responseBuffer = new RPCBuffer();
     // save space for length header
     responseBuffer.writeInt(Integer.MAX_VALUE);
