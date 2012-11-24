@@ -76,10 +76,6 @@ class ClientInputHandler<REQUEST extends MessageBase, RESPONSE extends MessageBa
   protected final Configuration mConfiguration;
 
   private ClientOutputHandler mOutputHandler;
-  /**
-   * Number of retransmits received
-   */
-  protected long mRetransmits = 0L;
 
   public ClientInputHandler(Configuration conf, RPCServer<REQUEST, RESPONSE> server,
       RPCHandler<REQUEST, RESPONSE> handler, SecurityHandlerFactory securityHandlerFactory, Socket client) {
@@ -114,8 +110,6 @@ class ClientInputHandler<REQUEST extends MessageBase, RESPONSE extends MessageBa
         // request is used to indicate if we should send
         // a failure packet in case of an error
         request = null;
-        mRetransmits = mRetransmits > 0 ? mRetransmits : 0;
-
         RPCBuffer requestBuffer = RPCBuffer.from(in);
         mHandler.incrementMetric(CLIENT_BYTES_READ, requestBuffer.length());
         request = new RPCRequest();
@@ -150,11 +144,9 @@ class ClientInputHandler<REQUEST extends MessageBase, RESPONSE extends MessageBa
             boolean inProgress = mRequestsInProgress.putIfAbsent(request.getXid(),
                 System.currentTimeMillis()) != null;
             if(inProgress) {
-              mRetransmits++;
               mHandler.incrementMetric(RESTRANSMITS, 1);
-              LOGGER.info(mSessionID + " ignoring request " + request.getXidAsHexString());
+              LOGGER.info(mSessionID + " ignoring retransmit of " + request.getXidAsHexString());
             } else {
-              mRetransmits--;
               /*
                * TODO ensure credentials are the same for request/cached
                * response.
