@@ -82,6 +82,48 @@ public class WriteOrderHandler extends Thread {
     mbRun = true;
     mbClosed = false;
   }
+  
+  @Override
+  public void run() {
+    try {
+      long iterationCount = 0L;
+      while (mbRun) {
+        try {
+          PendingWrite write = mWriteQueue.poll(10, TimeUnit.SECONDS);
+          if (write == null) {
+            synchronized (mPendingWrites) {
+              SortedSet<Long> offsets = new TreeSet<Long>(mPendingWrites.keySet());
+              if(!offsets.isEmpty()) {
+                LOGGER.info("Pending Write Offsets " + offsets.size() + ": first = " +
+                    offsets.first() +  ", last = " + offsets.last());
+              }
+            }
+          } else {
+            checkWriteState(write);
+            mPendingWrites.put(write.getOffset(), write);
+            mPendingWritesSize.addAndGet(write.getLength());
+          }
+          if(++iterationCount % 100L == 0L && mPendingWritesSize.get() > 0L) {
+            LOGGER.info("Pending writes " + (mPendingWritesSize.get() / 1024L / 1024L) + "MB, " +
+                "current offset = " + getCurrentPos());
+          }
+          synchronized (mOutputStream) {
+            checkPendingWrites();
+          }
+        } catch (InterruptedException e) {
+          // this thread is not interruptible
+        }
+      }
+    } catch (IOException e) {
+      LOGGER.error("WriteOrderHandler quitting due to IO Error", e);
+      mIOException = e;
+    } catch (NFS4Exception e) {
+      LOGGER.error("WriteOrderHandler quitting due NFS Exception", e);
+      mNFSException = e;
+    } finally {
+      mbRun = false;
+    }
+  }
 
   protected void checkException() throws IOException, NFS4Exception {
     if (mNFSException != null) {
@@ -98,9 +140,6 @@ public class WriteOrderHandler extends Thread {
     PendingWrite write = null;
     while ((write = mPendingWrites.remove(mOutputStream.getPos())) != null) {
       mPendingWritesSize.addAndGet(-write.getLength());
-      if(write instanceof FileBackedWrite) {
-
-      }
       doWrite(write);
     }
   }
@@ -226,47 +265,6 @@ public class WriteOrderHandler extends Thread {
       Thread.sleep(ms);
     } catch (InterruptedException e) {
       throw new IOException("Interrupted while paused", e);
-    }
-  }
-  @Override
-  public void run() {
-    try {
-      long iterationCount = 0L;
-      while (mbRun) {
-        try {
-          PendingWrite write = mWriteQueue.poll(10, TimeUnit.SECONDS);
-          if (write == null) {
-            synchronized (mPendingWrites) {
-              SortedSet<Long> offsets = new TreeSet<Long>(mPendingWrites.keySet());
-              if(!offsets.isEmpty()) {
-                LOGGER.info("Pending Write Offsets " + offsets.size() + ": first = " +
-                    offsets.first() +  ", last = " + offsets.last());
-              }
-            }
-          } else {
-            checkWriteState(write);
-            mPendingWrites.put(write.getOffset(), write);
-            mPendingWritesSize.addAndGet(write.getLength());
-          }
-          if(++iterationCount % 100L == 0L && mPendingWritesSize.get() > 0L) {
-            LOGGER.info("Pending writes " + (mPendingWritesSize.get() / 1024L / 1024L) + "MB, " +
-                "current offset = " + getCurrentPos());
-          }
-          synchronized (mOutputStream) {
-            checkPendingWrites();
-          }
-        } catch (InterruptedException e) {
-          // this thread is not interruptible
-        }
-      }
-    } catch (IOException e) {
-      LOGGER.error("WriteOrderHandler quitting due to IO Error", e);
-      mIOException = e;
-    } catch (NFS4Exception e) {
-      LOGGER.error("WriteOrderHandler quitting due NFS Exception", e);
-      mNFSException = e;
-    } finally {
-      mbRun = false;
     }
   }
   /**
