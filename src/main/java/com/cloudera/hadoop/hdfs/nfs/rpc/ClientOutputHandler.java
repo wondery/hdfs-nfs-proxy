@@ -80,14 +80,14 @@ class ClientOutputHandler extends Thread {
         }
         buffer = null;
       } catch (IOException e) {
-        LOGGER.warn("OutputStreamHandler for " + mClientName + " got error on write", e);
+        LOGGER.warn("ClientOutputHandler for " + mClientName + " got error on write", e);
         try {
           TimeUnit.SECONDS.sleep(1);
         } catch (InterruptedException x) {
           Thread.currentThread().interrupt();
         }
       } catch (InterruptedException e) {
-        LOGGER.info("OutputStreamHandler for " + mClientName + " interrupted");
+        LOGGER.info("ClientOutputHandler for " + mClientName + " interrupted");
         Thread.currentThread().interrupt();
       } finally {
         if (buffer != null) {
@@ -105,7 +105,7 @@ class ClientOutputHandler extends Thread {
         buffer.write(mOutputStream);
       }
     } catch (IOException e) {
-      LOGGER.info("OutputStreamHandler for " + mClientName +
+      LOGGER.info("ClientOutputHandler for " + mClientName +
           " got error on final write: " + e.getMessage());
     }
   }
