@@ -50,7 +50,7 @@ class ClientOutputHandler extends Thread {
     mWorkQueue = workQueue;
     mClientName = client;
     mShutdown = false;
-    setName("OutputStreamHandler-" + mClientName);
+    setName("ClientOutputHandler-" + mClientName);
   }
 
   /**
