@@ -116,7 +116,8 @@ class ClientInputHandler<REQUEST extends MessageBase, RESPONSE extends MessageBa
         request.read(requestBuffer);
         AccessPrivilege accessPrivilege = mSecurityHandlerFactory.getAccessPrivilege(mClient.getInetAddress());
         if(request.getRpcVersion() != RPC_VERSION) {
-          LOGGER.info(mSessionID + " Denying client due to bad RPC version " + request.getRpcVersion() + " for " + mClientName);
+          LOGGER.info(mSessionID + " Denying client due to bad RPC version " + request.getRpcVersion()
+              + " for " + mClientName);
           throw new RPCDeniedException(RPC_REJECT_MISMATCH);
         } else if(accessPrivilege == AccessPrivilege.NONE) {
           throw new RPCAuthException(RPC_AUTH_STATUS_BADCRED);
@@ -127,9 +128,12 @@ class ClientInputHandler<REQUEST extends MessageBase, RESPONSE extends MessageBa
           writeRPCBuffer(mSecurityHandlerFactory.
               handleNullRequest(mSessionID, mClientName, request, requestBuffer));
         } else if(!(request.getCredentials() instanceof AuthenticatedCredentials)) {
-          LOGGER.info(mSessionID + " Denying client due to non-authenticated credentials for " + mClientName);
+          LOGGER.info(mSessionID + " Denying client due to non-authenticated " +
+          		"credentials for " + mClientName);
           throw new RPCAuthException(RPC_AUTH_STATUS_TOOWEAK);
-        } else if(request.getProcedure() == NFS_PROC_COMPOUND) {
+        } else if(request.getProcedure() != NFS_PROC_COMPOUND) {       
+          throw new RPCAcceptedException(RPC_ACCEPT_PROC_UNAVAIL);
+        } else {
           if(LOGGER.isDebugEnabled()) {
             LOGGER.debug(mSessionID + " Handling NFS Compound for " + mClientName);
           }
@@ -160,8 +164,6 @@ class ClientInputHandler<REQUEST extends MessageBase, RESPONSE extends MessageBa
               }
             }
           }
-        } else {
-          throw new UnsupportedOperationException("Unknown Proc " + request.getProcedure());
         }
       }
     } catch(EOFException e) {
