@@ -69,6 +69,16 @@ public class PendingWriteFactory {
       }
     }
   }
+  
+  public void close() {
+    for(FileHandle fileHandle : mTempFileQueue) {
+      try {
+        fileHandle.randomAccessFile.close();        
+      } catch (IOException e) {
+        LOGGER.warn("Error closing " + fileHandle.file, e);
+      }
+    }
+  }
 
   private FileBackedByteArray writeToTemp(long offset, byte[] buffer, int start, int length)
       throws IOException {

@@ -145,6 +145,7 @@ public class WriteOrderHandler extends Thread {
         mOutputStream.sync();
         mOutputStream.close();
       }
+      mPendingWriteFactory.close();
       for(File tempDir : mTempDirs) {
         File dir = new File(tempDir, mIdentifer);
         PathUtils.fullyDelete(dir);
@@ -174,8 +175,8 @@ public class WriteOrderHandler extends Thread {
           pendingWrites = mPendingWrites.keySet().toString();
         }
         LOGGER.debug("Close would block for " + mOutputStream + ", expectedLength = " +
-            mExpectedLength.get() + ", mOutputStream.getPos = " + mOutputStream.getPos() +
-            ", pending writes = " + pendingWrites + ", write queue = " + mWriteQueue.size());
+          mExpectedLength.get() + ", mOutputStream.getPos = " + mOutputStream.getPos() +
+          ", pending writes = " + pendingWrites + ", write queue = " + mWriteQueue.size());
       }
       return true;
     }
@@ -230,6 +231,7 @@ public class WriteOrderHandler extends Thread {
   @Override
   public void run() {
     try {
+      long iterationCount = 0L;
       while (mbRun) {
         try {
           PendingWrite write = mWriteQueue.poll(10, TimeUnit.SECONDS);
@@ -246,9 +248,9 @@ public class WriteOrderHandler extends Thread {
             mPendingWrites.put(write.getOffset(), write);
             mPendingWritesSize.addAndGet(write.getLength());
           }
-          if(mPendingWritesSize.get() > 0L) {
+          if(++iterationCount % 100L == 0L && mPendingWritesSize.get() > 0L) {
             LOGGER.info("Pending writes " + (mPendingWritesSize.get() / 1024L / 1024L) + "MB, " +
-            		"current offset = " + getCurrentPos());
+                "current offset = " + getCurrentPos());
           }
           synchronized (mOutputStream) {
             checkPendingWrites();
