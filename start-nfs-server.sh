@@ -6,7 +6,7 @@ then
   echo "e.g. $0 conf/ port"
   exit 1
 fi
-JAR=$PWD/target/hdfs-nfs-proxy-0.8-SNAPSHOT-with-deps.jar
+JAR=$(ls $PWD/target/hdfs-nfs-proxy-*-with-deps.jar)
 CONFIG=$1
 PORT=$2
 if [[ ! -f $JAR ]]
