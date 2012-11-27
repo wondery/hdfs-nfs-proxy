@@ -7,7 +7,7 @@
     <groupId>com.cloudera</groupId>
     <artifactId>hdfs-nfs-proxy</artifactId>
     <packaging>jar</packaging>
-    <version>0.8.0-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
     <name>HDFS NFS4 Proxy</name>
     
     <prerequisites>
