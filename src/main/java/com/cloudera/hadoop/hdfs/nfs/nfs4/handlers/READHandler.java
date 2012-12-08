@@ -58,37 +58,27 @@ public class READHandler extends OperationRequestHandler<READRequest, READRespon
     Path path = hdfsState.getPath(fileHandle);
     FileSystem fs = session.getFileSystem();
     HDFSInputStream inputStream = hdfsState.forRead(request.getStateID(), fileHandle);
-    synchronized (inputStream) {
-      if (inputStream.getPos() != request.getOffset()) {
-        try {
-          inputStream.seek(request.getOffset());
-        } catch (IOException e) {
-          throw new IOException(e.getMessage() + ": " + inputStream.getPos() + ", " + request.getOffset(), e);
-        }
-        hdfsState.incrementMetric(NFS_RANDOM_READS, 1);
-      }
-      READResponse response = createResponse();
-      byte[] data = new byte[size];
-      int count = inputStream.read(data);
-      long fileLength = -1;
-      if ((count > 0) && (count != data.length)
-          && ((request.getOffset() + count) < (fileLength = fs.getFileStatus(path).getLen()))) {
-        LOGGER.info("Short read " + path
-            + " at pos = " + request.getOffset()
-            + ", wanted " + data.length + " and read " + count
-            + ", fileLength = " + fileLength);
-        hdfsState.incrementMetric(NFS_SHORT_READS, 1);
-      }
-      boolean eof = count < 0;
-      if (eof) {
-        data = new byte[0];
-        count = 0;
-      }
-      hdfsState.incrementMetric(HDFS_BYTES_READ, count);
-      response.setData(data, 0, count);
-      response.setEOF(eof);
-      response.setStatus(NFS4_OK);
-      return response;
+    READResponse response = createResponse();
+    byte[] data = new byte[size];
+    int count = inputStream.read(request.getOffset(), data, 0, data.length);
+    long fileLength = -1;
+    if ((count > 0) && (count != data.length)
+        && ((request.getOffset() + count) < (fileLength = fs.getFileStatus(path).getLen()))) {
+      LOGGER.info("Short read " + path
+          + " at pos = " + request.getOffset()
+          + ", wanted " + data.length + " and read " + count
+          + ", fileLength = " + fileLength);
+      hdfsState.incrementMetric(NFS_SHORT_READS, 1);
     }
+    boolean eof = count < 0;
+    if (eof) {
+      data = new byte[0];
+      count = 0;
+    }
+    hdfsState.incrementMetric(HDFS_BYTES_READ, count);
+    response.setData(data, 0, count);
+    response.setEOF(eof);
+    response.setStatus(NFS4_OK);
+    return response;
   }
 }
