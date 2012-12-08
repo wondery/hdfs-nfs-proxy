@@ -23,6 +23,8 @@ import java.io.InputStream;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class HDFSInputStream extends InputStream {
   private final FSDataInputStream in;
   public HDFSInputStream(FSDataInputStream in) {
@@ -32,10 +34,19 @@ public class HDFSInputStream extends InputStream {
   public void close() throws IOException {
     in.close();
   }
+  @VisibleForTesting
   public FSDataInputStream getFSDataInputStream() {
     return in;
   }
-
+  /**
+   * Read upto the specified number of bytes, from a given
+   * position within a file, and return the number of bytes read. This does not
+   * change the current offset of a file, and is thread-safe.
+   */
+  public int read(long position, byte[] buffer, int offset, int length)
+      throws IOException {
+    return in.read(position, buffer, offset, length);
+  }
   public long getPos() throws IOException {
     return in.getPos();
   }

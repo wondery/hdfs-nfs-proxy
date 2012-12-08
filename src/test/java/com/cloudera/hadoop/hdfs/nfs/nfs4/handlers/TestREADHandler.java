@@ -29,6 +29,8 @@ import java.io.IOException;
 import org.apache.hadoop.fs.Path;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.cloudera.hadoop.hdfs.nfs.nfs4.FileHandle;
 import com.cloudera.hadoop.hdfs.nfs.nfs4.StateID;
@@ -55,18 +57,18 @@ public class TestREADHandler extends TestBaseHandler {
     file = new Path("dir", "file");
     inputStream = mock(HDFSInputStream.class);
     when(inputStream.getPos()).thenReturn(512L);
-    when(inputStream.read(any(byte[].class))).thenReturn(512);
+    when(inputStream.read(anyLong(), any(byte[].class), anyInt(), anyInt())).thenReturn(512);
     when(hdfsState.getPath(currentFileHandle)).thenReturn(file);
     when(hdfsState.forRead(any(StateID.class), any(FileHandle.class))).
       thenReturn(inputStream);
   }
   @Test
   public void testEOF() throws Exception {
-    when(inputStream.read(any(byte[].class))).thenReturn(-1);
+    when(inputStream.read(anyLong(), any(byte[].class), anyInt(), anyInt())).thenReturn(-1);
     READResponse response = handler.handle(hdfsState, session, request);
     assertEquals(NFS4_OK, response.getStatus());
     assertTrue(response.isEOF());
-    verify(inputStream).read(any(byte[].class));
+    verify(inputStream).read(anyLong(), any(byte[].class), anyInt(), anyInt());
   }
   @Test
   public void testInvalidOffset() throws Exception {
@@ -77,36 +79,47 @@ public class TestREADHandler extends TestBaseHandler {
   @Test
   public void testSeek() throws Exception {
     request.setOffset(1);
+    when(inputStream.read(anyLong(), any(byte[].class), anyInt(), anyInt())).then(new Answer<Integer>() {
+      @Override
+      public Integer answer(InvocationOnMock invocation) throws Throwable {
+        Long offset = (Long)invocation.getArguments()[0];
+        if(offset != request.getOffset()) {
+          throw new AssertionError(offset + " " + request.getOffset());
+        }
+        return 512;
+      }
+    });
     READResponse response = handler.handle(hdfsState, session, request);
     assertEquals(NFS4_OK, response.getStatus());
-    verify(inputStream).seek(1);
+    verify(inputStream).read(anyLong(), any(byte[].class), anyInt(), anyInt());
   }
   @Test
-  public void testSeekIOException() throws Exception {
+  public void testReadIOException() throws Exception {
     request.setOffset(0);
-    doThrow(new IOException("Injected")).when(inputStream).seek(any(Long.class));
+    when(inputStream.read(anyLong(), any(byte[].class), anyInt(), anyInt())).
+      thenThrow(new IOException("Injected"));
     READResponse response = handler.handle(hdfsState, session, request);
     assertEquals(NFS4ERR_IO, response.getStatus());
   }
   @Test
   public void testShortRead() throws Exception {
     when(fileStatus.getLen()).thenReturn(1025L);
-    when(inputStream.read(any(byte[].class))).thenReturn(256);
+    when(inputStream.read(anyLong(), any(byte[].class), anyInt(), anyInt())).thenReturn(256);
     READResponse response = handler.handle(hdfsState, session, request);
     assertEquals(NFS4_OK, response.getStatus());
     assertFalse(response.isEOF());
     assertEquals(256, response.getLength());
-    verify(inputStream).read(any(byte[].class));
+    verify(inputStream).read(anyLong(), any(byte[].class), anyInt(), anyInt());
   }
   @Test
   public void testShortReadNoMoreData() throws Exception {
     when(fileStatus.getLen()).thenReturn(512L + 256L);
-    when(inputStream.read(any(byte[].class))).thenReturn(256);
+    when(inputStream.read(anyLong(), any(byte[].class), anyInt(), anyInt())).thenReturn(256);
     READResponse response = handler.handle(hdfsState, session, request);
     assertEquals(NFS4_OK, response.getStatus());
     assertFalse(response.isEOF());
     assertEquals(256, response.getLength());
-    verify(inputStream).read(any(byte[].class));
+    verify(inputStream).read(anyLong(), any(byte[].class), anyInt(), anyInt());
   }
   @Test
   public void testSuccess() throws Exception {
@@ -114,6 +127,6 @@ public class TestREADHandler extends TestBaseHandler {
     assertEquals(NFS4_OK, response.getStatus());
     assertFalse(response.isEOF());
     assertEquals(512, response.getLength());
-    verify(inputStream).read(any(byte[].class));
+    verify(inputStream).read(anyLong(), any(byte[].class), anyInt(), anyInt());
   }
 }
